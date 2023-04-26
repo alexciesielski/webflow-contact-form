@@ -1,144 +1,94 @@
-import { Subject, combineLatest, fromEvent } from 'rxjs';
-import { map, startWith, switchMap, tap } from 'rxjs/operators';
-import { calculateShippingPrice } from './calculate-shipping-price';
-import { debounce } from './debounce';
+import { debounceTime, map, tap } from 'rxjs/operators';
+import { PaletaConfig, calculateRow, validatePalety } from './calculate-shipping-price';
+import { QuoteForm } from './quote-form';
 
-const ZA_WYSOKA_CENA = 2500;
-const ZA_WYSOKA_CENA_MESSAGE = 'Prosimy o kontakt';
+declare const window: {
+  quote?: {
+    DISABLED?: boolean;
+    ZA_WYSOKA_CENA?: number;
+    ZA_WYSOKA_CENA_MESSAGE?: string;
+    WARTOSCI?: Partial<PaletaConfig>;
+  };
+};
 
-function setPriceOutput(price) {
-  let textContent = `${price.toFixed(2)} zł`;
+window.quote = {
+  ZA_WYSOKA_CENA: 2500,
+  ZA_WYSOKA_CENA_MESSAGE: 'Prosimy o kontakt',
+  WARTOSCI: {
+    ZMIENNA_WARTOSC_PROCENT: 15.75,
+    UBEZPIECZENIE_PROCENT: 0.17,
+    VAT_PROCENT: 23,
+    PALETA_TYPE_EURO: {
+      Do_400_kilo: 160,
+      Do_800_kilo: 190,
+      Do_1000_kilo: 218.75,
+    },
+    PALETA_TYPE_PRZEMYSLOWA: {
+      Do_400_kilo: 190,
+      Do_800_kilo: 218.75,
+      Do_1000_kilo: 241.25,
+    },
+    PALETA_TYPE_PRZEMYSLOWA_PLUS: {
+      Do_400_kilo: 190,
+      Do_800_kilo: 218.75,
+      Do_1000_kilo: 241.25,
+    },
+    PALETA_TYPE_POLPALETA: {
+      Do_200_kilo: 145,
+    },
+  },
+};
 
-  if (price >= ZA_WYSOKA_CENA) {
-    textContent = ZA_WYSOKA_CENA_MESSAGE;
-  }
+const PALETY: PaletaConfig = {
+  ZMIENNA_WARTOSC_PROCENT: window.quote?.WARTOSCI?.ZMIENNA_WARTOSC_PROCENT ?? 0,
+  UBEZPIECZENIE_PROCENT: window.quote?.WARTOSCI?.UBEZPIECZENIE_PROCENT ?? 0,
+  VAT_PROCENT: window.quote?.WARTOSCI?.VAT_PROCENT ?? 0,
 
-  document.querySelector('#price')!.textContent = textContent;
-}
+  PALETA_TYPE_EURO: {
+    Do_400_kilo: window.quote?.WARTOSCI?.PALETA_TYPE_EURO?.Do_400_kilo ?? 0,
+    Do_800_kilo: window.quote?.WARTOSCI?.PALETA_TYPE_EURO?.Do_800_kilo ?? 0,
+    Do_1000_kilo: window.quote?.WARTOSCI?.PALETA_TYPE_EURO?.Do_1000_kilo ?? 0,
+  },
 
-const debouncedSetPriceOutput = debounce(setPriceOutput, 500);
+  PALETA_TYPE_PRZEMYSLOWA: {
+    Do_400_kilo: window.quote?.WARTOSCI?.PALETA_TYPE_PRZEMYSLOWA?.Do_400_kilo ?? 0,
+    Do_800_kilo: window.quote?.WARTOSCI?.PALETA_TYPE_PRZEMYSLOWA?.Do_800_kilo ?? 0,
+    Do_1000_kilo: window.quote?.WARTOSCI?.PALETA_TYPE_PRZEMYSLOWA?.Do_1000_kilo ?? 0,
+  },
 
-setTimeout(() => {
-  const reset$ = new Subject();
+  PALETA_TYPE_PRZEMYSLOWA_PLUS: {
+    Do_400_kilo: window.quote?.WARTOSCI?.PALETA_TYPE_PRZEMYSLOWA_PLUS?.Do_400_kilo ?? 0,
+    Do_800_kilo: window.quote?.WARTOSCI?.PALETA_TYPE_PRZEMYSLOWA_PLUS?.Do_800_kilo ?? 0,
+    Do_1000_kilo: window.quote?.WARTOSCI?.PALETA_TYPE_PRZEMYSLOWA_PLUS?.Do_1000_kilo ?? 0,
+  },
 
-  // @return Observable<{ wysokosc: number, waga: number, ilosc: number, type: string }>
-  function getValues(node) {
-    const select = node.querySelector('select');
-    const inputs = node.querySelectorAll('input') as HTMLInputElement[];
+  PALETA_TYPE_POLPALETA: {
+    Do_200_kilo: window.quote?.WARTOSCI?.PALETA_TYPE_POLPALETA?.Do_200_kilo ?? 0,
+  },
+};
 
-    const idToKey = {
-      Wysoko: 'wysokosc',
-      Waga: 'waga',
-      Ilo: 'ilosc',
-    };
+console.debug(`[validatePalety]: quote config`, window.quote);
+const valid = validatePalety(PALETY);
+console.debug(`[validatePalety]: valid`, valid, PALETY);
 
-    const getInputKey = (input) => {
-      const dataName = input.getAttribute('data-name');
-      return Object.entries(idToKey).reduce((name, [id, key]) => {
-        if (dataName?.startsWith(id)) {
-          return key;
-        }
+if (valid && !window.quote?.DISABLED) {
+  const ZA_WYSOKA_CENA = window.quote?.ZA_WYSOKA_CENA ?? 2500;
+  const ZA_WYSOKA_CENA_MESSAGE = window.quote?.ZA_WYSOKA_CENA_MESSAGE ?? 'Prosimy o kontakt';
 
-        return name;
-      }, '');
-    };
-
-    const inputs$ = combineLatest(
-      Array.from(inputs).map((input) =>
-        fromEvent(input, 'input').pipe(
-          startWith(0),
-          map(() => input.valueAsNumber ?? 0),
-          map((value) => (Number.isNaN(value) ? 0 : value)),
-          map((value) => ({ [getInputKey(input)]: value })),
-        ),
-      ),
-    ).pipe(
-      map((values) =>
-        values.reduce(
-          (all, value) => ({
-            ...all,
-            ...value,
-          }),
-          {},
-        ),
-      ),
-    );
-
-    const select$ = fromEvent(select, 'change').pipe(
-      startWith(select.selectedIndex),
-      map(() => select.selectedIndex),
-      map((value) => ({ typ: value })),
-    );
-
-    return combineLatest([inputs$, select$]);
-  }
-
-  const insuranceInput = document.querySelector('.data-input.insurance')! as HTMLInputElement;
-  const insurance$ = fromEvent(document.querySelector('.data-input.insurance')!, 'input').pipe(
-    map(() => insuranceInput.value),
-    tap((insurance) => console.log('insurance', insurance)),
-    startWith(0),
+  setTimeout(
+    () =>
+      new QuoteForm().value$
+        .pipe(
+          map(({ rows, insurance }) =>
+            rows.map((row) => calculateRow(PALETY, { ...row, insurance })).reduce((sum, row) => sum + row, 0),
+          ),
+          debounceTime(250),
+          tap((price) => console.debug(`[QuoteForm]: price`, price)),
+          map((price) => (price >= ZA_WYSOKA_CENA ? ZA_WYSOKA_CENA_MESSAGE : `${price.toFixed(2)} zł}`)),
+          tap((price) => console.debug(`[QuoteForm]: price label`, price)),
+          tap((price) => (document.querySelector('#price')!.textContent = price)),
+        )
+        .subscribe(),
+    1000,
   );
-
-  combineLatest([reset$, insurance$])
-    .pipe(
-      switchMap(() => {
-        const rows = document.querySelectorAll('#srow');
-        return combineLatest(Array.from(rows).map((row) => getValues(row)));
-      }),
-      map((values) => values.map((value) => value.reduce((finalValue, value) => ({ ...finalValue, ...value }), {}))),
-      map((values) => {
-        return values.map((value) => {
-          const { waga, ilosc, typ } = value as { waga: number; ilosc: number; typ: number };
-          return calculateShippingPrice(typ, ilosc, waga, Number(insuranceInput.value));
-        });
-      }),
-      map((values) => values.reduce((sum, current) => (sum += current), 0)),
-      startWith(0),
-      tap((sum) => debouncedSetPriceOutput(sum)),
-    )
-    .subscribe();
-
-  reset$.next();
-
-  function insertAfter(newNode, existingNode) {
-    existingNode.parentNode.insertBefore(newNode, existingNode.nextSibling);
-  }
-
-  let counter = 1;
-  document.querySelector('#btn-duplicate')!.addEventListener('click', () => {
-    const row = document.querySelector('[initial-row="0"]') as HTMLElement;
-    const node = row.cloneNode(true)! as HTMLElement;
-
-    node.setAttribute('initial-row', `${counter}`);
-    insertAfter(node, document.querySelector(`[initial-row="${counter - 1}"]`));
-
-    const newId = ++counter;
-
-    node.querySelectorAll('input').forEach((input) => {
-      input.setAttribute('data-name', `${input.getAttribute('data-name')} ${newId}`);
-      input.setAttribute('name', `${input.getAttribute('name')} ${newId}`);
-      input.setAttribute('id', `${input.getAttribute('id')} ${newId}`);
-      input.value = '';
-    });
-
-    node.querySelectorAll('select').forEach((input) => {
-      input.setAttribute('data-name', `${input.getAttribute('data-name')} ${newId}`);
-      input.setAttribute('name', `${input.getAttribute('name')} ${newId}`);
-      input.setAttribute('id', `${input.getAttribute('id')} ${newId}`);
-      // input.value = undefined;
-    });
-
-    const btnDelete = node.querySelector('#btn-delete') as HTMLElement;
-    btnDelete.style.opacity = '1';
-    btnDelete.addEventListener('click', () => {
-      counter--;
-      node.remove();
-      reset$.next();
-    });
-
-    setTimeout(() => {
-      reset$.next();
-    }, 1);
-  });
-}, 1000);
+}

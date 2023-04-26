@@ -1,31 +1,76 @@
-const ZMIENNIA_WARTOSC_PROCENT = 15.75;
-const UBEZPIECZENIE_PROCENT = 0.17;
-const VAT_PROCENT = 23;
+export interface PaletaConfig {
+  ZMIENNA_WARTOSC_PROCENT: number;
+  UBEZPIECZENIE_PROCENT: number;
+  VAT_PROCENT: number;
 
-const PALETA_TYPE_EURO = {
-  Do_400_kilo: 160,
-  Do_800_kilo: 190,
-  Do_1000_kilo: 218.75,
-};
+  PALETA_TYPE_EURO: {
+    Do_400_kilo: number;
+    Do_800_kilo: number;
+    Do_1000_kilo: number;
+  };
 
-const PALETA_TYPE_PRZEMYSLOWA = {
-  Do_400_kilo: 190,
-  Do_800_kilo: 218.75,
-  Do_1000_kilo: 241.25,
-};
+  PALETA_TYPE_PRZEMYSLOWA: {
+    Do_400_kilo: number;
+    Do_800_kilo: number;
+    Do_1000_kilo: number;
+  };
 
-const PALETA_TYPE_PRZEMYSLOWA_PLUS = {
-  Do_400_kilo: 190,
-  Do_800_kilo: 218.75,
-  Do_1000_kilo: 241.25,
-};
+  PALETA_TYPE_PRZEMYSLOWA_PLUS: {
+    Do_400_kilo: number;
+    Do_800_kilo: number;
+    Do_1000_kilo: number;
+  };
 
-const PALETA_TYPE_POLPALETA = {
-  Do_200_kilo: 145,
-};
+  PALETA_TYPE_POLPALETA: {
+    Do_200_kilo: number;
+  };
+}
 
-export function calculateShippingPrice(type: number, qty: number, weight: number, insurance: number): number {
+export function validatePalety(config: PaletaConfig): boolean {
+  const undefinedKeys = Object.entries(config)
+    .map(([key, value]) => {
+      if (value === undefined || value === null || value === 0) {
+        return key;
+      } else if (typeof value === 'object') {
+        return Object.entries(config || {}).map(([key, value]) => {
+          if (typeof value === 'undefined') {
+            return key;
+          }
+        });
+      }
+    })
+    .flat()
+    .filter(Boolean);
+
+  if (undefinedKeys.length) {
+    alert(`Błąd w formularzu. Prosimy o kontakt.\n\nNie skonfigurowano wartości dla ${undefinedKeys.join(', ')}`);
+    return false;
+  }
+
+  return true;
+}
+
+export function calculateRow(
+  config: PaletaConfig,
+  values: {
+    type: number;
+    qty: number;
+    weight: number;
+    insurance: number;
+  },
+): number {
+  const {
+    PALETA_TYPE_EURO,
+    PALETA_TYPE_POLPALETA,
+    PALETA_TYPE_PRZEMYSLOWA,
+    PALETA_TYPE_PRZEMYSLOWA_PLUS,
+    UBEZPIECZENIE_PROCENT,
+    VAT_PROCENT,
+    ZMIENNA_WARTOSC_PROCENT,
+  } = config;
   let totalBasePrice = 0;
+
+  let { type, qty, weight, insurance } = values;
 
   const typeEuroQty = type === 1 ? qty : 0;
   const typePolpaletaQty = type === 2 ? qty : 0;
@@ -84,7 +129,7 @@ export function calculateShippingPrice(type: number, qty: number, weight: number
   // Calculate total net price
   insurance = (insurance || 0) < 3000 ? 3000 : insurance;
   const insuranceCost = insurance * (UBEZPIECZENIE_PROCENT / 100);
-  const totalNetPrice = (totalBasePrice + insuranceCost) * ((100 + ZMIENNIA_WARTOSC_PROCENT) / 100);
+  const totalNetPrice = (totalBasePrice + insuranceCost) * ((100 + ZMIENNA_WARTOSC_PROCENT) / 100);
   const totalPrice = totalNetPrice * ((100 + VAT_PROCENT) / 100);
 
   return totalPrice;
