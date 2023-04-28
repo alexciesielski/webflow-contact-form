@@ -1,14 +1,25 @@
-import { number$, select$ } from './form-util';
+import { Observable } from 'rxjs';
+import { map, tap } from 'rxjs/operators';
+import { number$, select$, text$ } from './form-util';
 
 export class FormControl<T extends string | number = number> {
-  constructor(readonly name: string, private readonly selector: string) {
+  constructor(readonly name: string, private readonly selector: string, type: 'string' | 'number' = 'number') {
     console.debug(`[FormControl.ctor]: `, name, selector);
   }
 
-  private readonly element = document.querySelector(this.selector) as HTMLFormElement;
-  private readonly type = this.element.getAttribute('type') ?? null;
+  private readonly element = document.querySelector(this.selector) as HTMLFormElement | undefined;
+  private readonly type = this.element?.getAttribute('type') ?? null;
 
-  readonly value$ = isInput(this.element) ? number$(this.selector) : select$(this.selector);
+  readonly value$ = (
+    (isInput(this.element)
+      ? this.type === 'number'
+        ? number$(this.selector)
+        : text$(this.selector)
+      : select$(this.selector)) as Observable<T>
+  ).pipe(
+    map((value) => value as T),
+    tap((value) => console.debug(`[FormControl."${this.name}"]: value`, value)),
+  );
 
   getValue() {
     const el = this.element;
@@ -43,10 +54,10 @@ export class FormControl<T extends string | number = number> {
   }
 }
 
-export function isInput(node: Node): node is HTMLInputElement {
+export function isInput(node?: Node): node is HTMLInputElement {
   return node instanceof HTMLInputElement;
 }
 
-export function isSelect(node: Node): node is HTMLSelectElement {
+export function isSelect(node?: Node): node is HTMLSelectElement {
   return node instanceof HTMLSelectElement;
 }

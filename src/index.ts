@@ -1,5 +1,8 @@
 import { debounceTime, map, tap } from 'rxjs/operators';
+import { AddressForm } from './address-form';
 import { PaletaConfig, calculateRow, validatePalety } from './calculate-shipping-price';
+import { ContactForm } from './contact-form';
+import { PaymentForm } from './payment-form';
 import { QuoteForm } from './quote-form';
 
 declare const window: {
@@ -75,20 +78,22 @@ if (valid && !window.quote?.DISABLED) {
   const ZA_WYSOKA_CENA = window.quote?.ZA_WYSOKA_CENA ?? 2500;
   const ZA_WYSOKA_CENA_MESSAGE = window.quote?.ZA_WYSOKA_CENA_MESSAGE ?? 'Prosimy o kontakt';
 
-  setTimeout(
-    () =>
-      new QuoteForm().value$
-        .pipe(
-          map(({ rows, insurance }) =>
-            rows.map((row) => calculateRow(PALETY, { ...row, insurance })).reduce((sum, row) => sum + row, 0),
-          ),
-          debounceTime(250),
-          tap((price) => console.debug(`[QuoteForm]: price`, price)),
-          map((price) => (price >= ZA_WYSOKA_CENA ? ZA_WYSOKA_CENA_MESSAGE : `${price.toFixed(2)} zł}`)),
-          tap((price) => console.debug(`[QuoteForm]: price label`, price)),
-          tap((price) => (document.querySelector('#price')!.textContent = price)),
-        )
-        .subscribe(),
-    1000,
-  );
+  setTimeout(() => {
+    new QuoteForm().value$
+      .pipe(
+        map(({ rows, insurance }) =>
+          rows.map((row) => calculateRow(PALETY, { ...row, insurance })).reduce((sum, row) => sum + row, 0),
+        ),
+        debounceTime(250),
+        tap((price) => console.debug(`[QuoteForm]: price`, price)),
+        map((price) => (price >= ZA_WYSOKA_CENA ? ZA_WYSOKA_CENA_MESSAGE : `${price.toFixed(2)} zł`)),
+        tap((price) => console.debug(`[QuoteForm]: price label`, price)),
+        tap((price) => (document.querySelector('#price')!.textContent = price)),
+      )
+      .subscribe();
+
+    new AddressForm().initialize();
+    new ContactForm().initialize();
+    new PaymentForm().initialize();
+  }, 1000);
 }

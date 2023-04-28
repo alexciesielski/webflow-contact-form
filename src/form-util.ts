@@ -11,6 +11,15 @@ export function number$(selector: string): Observable<number> {
   );
 }
 
+export function text$(selector: string): Observable<string> {
+  const element = document.querySelector(selector) as HTMLInputElement;
+  assertNonNullable(element, `Expected "${selector}" to be defined`);
+  return fromEvent(element, 'input').pipe(
+    startWith(0),
+    map(() => element.value),
+  );
+}
+
 export function select$(selector: string): Observable<number> {
   const element = document.querySelector(selector) as HTMLSelectElement;
   assertNonNullable(element, `Expected "${selector}" to be defined`);

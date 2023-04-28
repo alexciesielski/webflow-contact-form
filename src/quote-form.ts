@@ -1,11 +1,10 @@
-import { Observable, Subject, combineLatest } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
+import { Observable, Subject, combineLatest, merge } from 'rxjs';
+import { map, switchMap, tap } from 'rxjs/operators';
 import { FormControl } from './form-control';
 import { insertNodeAfter } from './insert-node-after';
 
-const formId = `wf-form-Wycena-Przesy-ki`;
-const quoteSelector = `${formId} #Step1`;
-const rowSelector = `${quoteSelector} #srow`;
+const formId = `#wf-form-Wycena-Przesy-ki`;
+const selector = `${formId} #Step1 + div`;
 let counter = 1;
 
 export interface QuoteFormRowValue {
@@ -28,10 +27,15 @@ export class QuoteForm {
   private readonly initializeForm$$ = new Subject();
 
   private readonly rows: Array<Array<FormControl<number>>> = [this.getFormRow(0)];
-  private readonly insuranceInput: FormControl = new FormControl('insurance', `${quoteSelector} .data-input.insurance`);
+  private readonly insuranceInput: FormControl = new FormControl('insurance', `${selector} .data-input.insurance`);
 
   readonly value$: Observable<QuoteFormValue> = combineLatest([
-    this.initializeForm$$.pipe(map(() => this.rows)),
+    this.initializeForm$$.pipe(
+      map(() => this.rows),
+      map((rows) => rows.map((elements) => elements.map((element) => element.value$)).flat(2)),
+      switchMap((obs) => merge(...obs)),
+      map((xxx) => this.rows),
+    ),
     this.insuranceInput.value$,
   ]).pipe(
     map(([rows, insurance]) => {
@@ -52,7 +56,7 @@ export class QuoteForm {
 
   initialize() {
     console.debug(`[QuoteForm]. initialize()`);
-    document.querySelector(`${quoteSelector} #btn-duplicate`)!.addEventListener('click', () => {
+    document.querySelector(`${selector} #btn-duplicate`)!.addEventListener('click', () => {
       this.addRow();
       setTimeout(() => this.initializeForm(), 1);
     });
@@ -72,7 +76,7 @@ export class QuoteForm {
 
     node.setAttribute('initial-row', `${counter}`);
     insertNodeAfter(node, document.querySelector(`[initial-row="${counter - 1}"]`)!);
-    this.rows.push(this.getFormRow(counter - 1));
+    this.rows.push(this.getFormRow(counter));
 
     const newId = ++counter;
 
@@ -105,7 +109,7 @@ export class QuoteForm {
 
   private getFormRow(index: number): Array<FormControl<number>> {
     console.debug(`[QuoteForm]: getFormRow(${index})`);
-    const rowSelector = `${quoteSelector} [initial-row="${index}"]`;
+    const rowSelector = `${selector} [initial-row="${index}"]`;
     const typeSelect = new FormControl('type', `${rowSelector} select`);
     const heightInput = new FormControl('height', `${rowSelector} input#Wysoko`);
     const weightInput = new FormControl('weight', `${rowSelector} input#Waga`);
