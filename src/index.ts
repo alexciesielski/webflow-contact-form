@@ -1,8 +1,6 @@
 import { debounceTime, map, tap } from 'rxjs/operators';
 import packageJson from '../package.json';
-import { AddressForm } from './address-form';
 import { PaletaConfig, calculateRow, validatePalety } from './calculate-shipping-price';
-import { ContactForm } from './contact-form';
 import { PaymentForm } from './payment-form';
 import { QuoteForm } from './quote-form';
 
@@ -104,8 +102,8 @@ if (valid && !window.quote?.DISABLED) {
       )
       .subscribe();
 
-    new AddressForm().initialize();
-    new ContactForm().initialize();
+    // new AddressForm().initialize();
+    // new ContactForm().initialize();
     new PaymentForm().initialize();
   }, 1000);
 }
