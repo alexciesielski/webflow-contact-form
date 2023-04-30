@@ -1,4 +1,5 @@
 import { debounceTime, map, tap } from 'rxjs/operators';
+import packageJson from '../package.json';
 import { AddressForm } from './address-form';
 import { PaletaConfig, calculateRow, validatePalety } from './calculate-shipping-price';
 import { ContactForm } from './contact-form';
@@ -74,6 +75,12 @@ const PALETY: PaletaConfig = {
     Do_200_kilo: window.quote?.WARTOSCI?.PALETA_TYPE_POLPALETA?.Do_200_kilo ?? 0,
   },
 };
+
+try {
+  console.debug(`[validatePalety]: version`, packageJson.version);
+} catch (err) {
+  console.error('could not print package.json version');
+}
 
 console.debug(`[validatePalety]: quote config`, window.quote);
 const valid = validatePalety(PALETY);
