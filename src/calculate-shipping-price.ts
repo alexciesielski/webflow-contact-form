@@ -99,6 +99,8 @@ export function calculateRow(
       totalBasePrice += typeEuroQty * PALETA_TYPE_EURO['Do_1000_kilo'];
     } else if (typeEuroWeight <= 1200) {
       totalBasePrice += typeEuroQty * PALETA_TYPE_EURO['Do_1200_kilo'];
+    } else {
+      totalBasePrice *= 9999;
     }
   }
 
@@ -112,6 +114,8 @@ export function calculateRow(
       totalBasePrice += typePrzemyslowaQty * PALETA_TYPE_PRZEMYSLOWA['Do_1000_kilo'];
     } else if (typePrzemyslowaWeight <= 1200) {
       totalBasePrice += typePrzemyslowaQty * PALETA_TYPE_PRZEMYSLOWA['Do_1200_kilo'];
+    } else {
+      totalBasePrice *= 9999;
     }
   }
 
@@ -125,6 +129,8 @@ export function calculateRow(
       totalBasePrice += typePrzemyslowaPlusQty * PALETA_TYPE_PRZEMYSLOWA_PLUS['Do_1000_kilo'];
     } else if (typePrzemyslowaPlusWeight <= 1200) {
       totalBasePrice += typePrzemyslowaPlusQty * PALETA_TYPE_PRZEMYSLOWA_PLUS['Do_1200_kilo'];
+    } else {
+      totalBasePrice *= 9999;
     }
   }
 
@@ -132,6 +138,8 @@ export function calculateRow(
   if (typePolpaletaQty > 0) {
     if (typePolpaletaWeight <= 200) {
       totalBasePrice += typePolpaletaQty * PALETA_TYPE_POLPALETA['Do_200_kilo'];
+    } else {
+      totalBasePrice *= 9999;
     }
   }
 
