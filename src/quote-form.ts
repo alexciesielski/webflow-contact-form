@@ -1,10 +1,10 @@
 import { Observable, Subject, combineLatest, merge } from 'rxjs';
 import { map, switchMap, tap } from 'rxjs/operators';
 import { FormControl } from './form-control';
+import { FORM_ID } from './form-id';
 import { insertNodeAfter } from './insert-node-after';
 
-const formId = `#wf-form-Wycena-Przesy-ki`;
-const selector = `${formId} #Step1 + div`;
+const selector = `${FORM_ID} #Step1 + div`;
 let counter = 1;
 
 export interface QuoteFormRowValue {

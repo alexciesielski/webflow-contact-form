@@ -1,9 +1,9 @@
 import { merge } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { FormControl } from './form-control';
+import { FORM_ID } from './form-id';
 
-const formId = `#wf-form-Wycena-Przesy-ki`;
-const selector = `${formId} #FS2 + div`;
+const selector = `${FORM_ID} #FS2 + div`;
 
 export class AddressForm {
   private controls = [

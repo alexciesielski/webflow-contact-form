@@ -91,29 +91,35 @@ if (valid && !window.quote?.DISABLED) {
   const ZA_WYSOKA_CENA_MESSAGE = window.quote?.ZA_WYSOKA_CENA_MESSAGE ?? 'Prosimy o kontakt';
 
   setTimeout(() => {
-    const priceInput = new FormControl<string>('price-input', '#price-input', 'string');
-    priceInput.element!.style.display = 'none';
+    try {
+      const priceInput = new FormControl<string>('price-input', '#price-input', 'string');
+      priceInput.element!.style.display = 'none';
 
-    new QuoteForm().value$
-      .pipe(
-        map(({ rows, insurance }) =>
-          rows.map((row) => calculateRow(PALETY, { ...row, insurance })).reduce((sum, row) => sum + row, 0),
-        ),
-        debounceTime(250),
-        tap((price) => console.debug(`[QuoteForm]: price`, price)),
-        map((price) => (price >= ZA_WYSOKA_CENA ? ZA_WYSOKA_CENA_MESSAGE : `${price.toFixed(2)} zł`)),
-        tap((price) => console.debug(`[QuoteForm]: price label`, price)),
-        tap((price) => priceInput.setValue(price)),
-        tap((price) => (document.querySelector('#price')!.textContent = price)),
-        catchError((err) => {
-          console.error(err);
-          return of(null);
-        }),
-      )
-      .subscribe();
+      new QuoteForm().value$
+        .pipe(
+          map(({ rows, insurance }) =>
+            rows.map((row) => calculateRow(PALETY, { ...row, insurance })).reduce((sum, row) => sum + row, 0),
+          ),
+          debounceTime(250),
+          tap((price) => console.debug(`[QuoteForm]: price`, price)),
+          map((price) => (price >= ZA_WYSOKA_CENA ? ZA_WYSOKA_CENA_MESSAGE : `${price.toFixed(2)} zł`)),
+          tap((price) => console.debug(`[QuoteForm]: price label`, price)),
+          tap((price) => priceInput.setValue(price)),
+          tap((price) => (document.querySelector('#price')!.textContent = price)),
+          catchError((err) => {
+            document.querySelector('#price')!.textContent = 'Błąd w formularzu 🚫';
+            console.error(err);
+            return of(null);
+          }),
+        )
+        .subscribe();
 
-    // new AddressForm().initialize();
-    // new ContactForm().initialize();
-    new PaymentForm().initialize();
+      // new AddressForm().initialize();
+      // new ContactForm().initialize();
+      new PaymentForm().initialize();
+    } catch (err) {
+      console.error(err);
+      document.querySelector('#price')!.textContent = 'Błąd w formularzu 🚫';
+    }
   }, 1000);
 }
