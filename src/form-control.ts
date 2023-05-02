@@ -7,7 +7,7 @@ export class FormControl<T extends string | number = number> {
     console.debug(`[FormControl.ctor]: `, name, selector);
   }
 
-  private readonly element = document.querySelector(this.selector) as HTMLFormElement | undefined;
+  readonly element = document.querySelector(this.selector) as HTMLFormElement | undefined;
   private readonly type = this.element?.getAttribute('type') ?? null;
 
   readonly value$ = (
@@ -40,6 +40,7 @@ export class FormControl<T extends string | number = number> {
         el.value = value;
         return;
       } else if (typeof value === 'number') {
+        // set the input value as a number
         el.valueAsNumber = value;
         return;
       }

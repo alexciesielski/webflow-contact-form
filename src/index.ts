@@ -1,6 +1,8 @@
-import { debounceTime, map, tap } from 'rxjs/operators';
+import { of } from 'rxjs';
+import { catchError, debounceTime, map, tap } from 'rxjs/operators';
 import packageJson from '../package.json';
 import { PaletaConfig, calculateRow, validatePalety } from './calculate-shipping-price';
+import { FormControl } from './form-control';
 import { PaymentForm } from './payment-form';
 import { QuoteForm } from './quote-form';
 
@@ -89,6 +91,9 @@ if (valid && !window.quote?.DISABLED) {
   const ZA_WYSOKA_CENA_MESSAGE = window.quote?.ZA_WYSOKA_CENA_MESSAGE ?? 'Prosimy o kontakt';
 
   setTimeout(() => {
+    const priceInput = new FormControl<string>('price-input', '#price-input', 'string');
+    priceInput.element!.style.display = 'none';
+
     new QuoteForm().value$
       .pipe(
         map(({ rows, insurance }) =>
@@ -98,7 +103,12 @@ if (valid && !window.quote?.DISABLED) {
         tap((price) => console.debug(`[QuoteForm]: price`, price)),
         map((price) => (price >= ZA_WYSOKA_CENA ? ZA_WYSOKA_CENA_MESSAGE : `${price.toFixed(2)} zł`)),
         tap((price) => console.debug(`[QuoteForm]: price label`, price)),
+        tap((price) => priceInput.setValue(price)),
         tap((price) => (document.querySelector('#price')!.textContent = price)),
+        catchError((err) => {
+          console.error(err);
+          return of(null);
+        }),
       )
       .subscribe();
 
